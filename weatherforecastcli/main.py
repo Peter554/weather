@@ -3,10 +3,10 @@ import rich.console
 import rich.table
 import typer
 
-import weather.meteomatics as meteomatics
-import weather.positionstack as positionstack
-import weather.utils as utils
-from weather.config import Config
+import weatherforecastcli.meteomatics as meteomatics
+import weatherforecastcli.positionstack as positionstack
+import weatherforecastcli.utils as utils
+from weatherforecastcli.config import Config
 
 app = typer.Typer(help="Weather forecast CLI.")
 console = rich.console.Console()

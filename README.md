@@ -3,7 +3,7 @@
 A little weather CLI using [Positionstack](https://positionstack.com/) for geocoding 
 and [Meteomatics](https://www.meteomatics.com/) for weather data.
 
-Just a small hacking project. Missing tests, limited error handling, no CI, not published to PyPI etc... 
+Just a small hacking project. Missing tests, limited error handling, no CI etc... 
 Just for fun!
 
 ## Usage
@@ -11,16 +11,14 @@ Just for fun!
 Requires Python 3.10+.
 
 * Create a free account on both Positionstack & Meteomatics.
-* Install [Poetry](https://python-poetry.org/) (I haven't published to PyPI, just hacking).
-* Clone this repo.
-* Install the CLI: `poetry install`
-* Initialize the CLI: `poetry run weather init`
+* Install the CLI: `pip install weatherforecastcli`
+* Initialize the CLI: `weather init`
 * Start getting weather forecasts!
 
 ### Forecasts
 
 ```
-❯ poetry run weather forecast --help
+❯ weather forecast --help
                                                                                                 
  Usage: weather forecast [OPTIONS] LOCATION                                                     
                                                                                                 
@@ -40,7 +38,7 @@ Requires Python 3.10+.
 example:
 
 ```
-❯ poetry run weather forecast "Glasgow UK" 
+❯ weather forecast "Glasgow UK" 
 Forcast for Glasgow GBR ((55.8608, -4.2682))
                                         2022-11-18                                        
 ┏━━━━━━━━━━┳━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
@@ -67,7 +65,7 @@ Forcast for Glasgow GBR ((55.8608, -4.2682))
 one more example:
 
 ```
-❯ poetry run weather forecast "Berkeley US" --skip-days 1 --take-days 3 --resolution 4H
+❯ weather forecast "Berkeley US" --skip-days 1 --take-days 3 --resolution 4H
 
 Forcast for Berkeley USA ((37.8658, -122.2979))
                                          2022-11-19                                          
