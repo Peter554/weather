@@ -26,21 +26,22 @@ def build_forecast_datetimes(
     skip_days: int, take_days: int, resolution: ForcastResolution, timezone_name: str
 ) -> list[datetime.datetime]:
     location_timezone = zoneinfo.ZoneInfo(timezone_name)
+    today_in_timezone = datetime.datetime.now().astimezone(location_timezone).date()
     start_dt = datetime.datetime.combine(
-        datetime.datetime.today() + datetime.timedelta(days=skip_days),
+        today_in_timezone + datetime.timedelta(days=skip_days),
         datetime.time(0, 0, 0),
         location_timezone,
     )
-    end_dt = datetime.datetime.combine(
+    end_date = datetime.datetime.combine(
         start_dt + datetime.timedelta(days=take_days - 1),
         datetime.time(0, 0, 0),
         location_timezone,
-    )
+    ).date()
 
     datetimes = [start_dt]
     while True:
         next_dt = datetimes[-1] + resolution_timedelta_mapping[resolution]
-        if next_dt.date() > end_dt.date():
+        if next_dt.date() > end_date:
             break
         datetimes.append(next_dt)
     return sorted(
