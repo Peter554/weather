@@ -14,7 +14,7 @@ import rich.console
 import rich.table
 import typer
 import requests
-
+import zoneinfo
 
 app = typer.Typer()
 console = rich.console.Console()
@@ -24,6 +24,7 @@ console = rich.console.Console()
 class Config:
     meteomatics_username: str
     meteomatics_password: str
+    poisonstack_access_key: str
 
     @classmethod
     def _path(cls) -> pathlib.Path:
@@ -46,6 +47,7 @@ class Config:
 def init(
     meteomatics_username: str = typer.Option(..., prompt=True),
     meteomatics_password: str = typer.Option(..., prompt=True),
+    poisonstack_access_key: str = typer.Option(..., prompt=True),
 ) -> None:
     """
     Initializes the CLI, setting the user credentials.
@@ -53,6 +55,7 @@ def init(
     config = Config(
         meteomatics_username=meteomatics_username,
         meteomatics_password=meteomatics_password,
+        poisonstack_access_key=poisonstack_access_key,
     )
     config.save()
 
@@ -68,6 +71,7 @@ class ForcastResolution(str, enum.Enum):
 
 @app.command()
 def forecast(
+    location: str,
     skip_days: int = 0,
     take_days: int = 3,
     resolution: ForcastResolution = ForcastResolution.THREE_HOUR,
@@ -81,6 +85,20 @@ def forecast(
         rich.print("Run `init` to initialize the CLI.")
         raise typer.Exit(code=1)
 
+    poisonstack_geocode_response = requests.get(
+        f"http://api.positionstack.com/v1/forward?access_key={config.poisonstack_access_key}&query={location}&timezone_module=1"
+    )
+    if poisonstack_geocode_response.status_code != 200:
+        rich.print("[bold red]Failed to geocode via poisonstack![/]")
+        rich.print("status code:", poisonstack_geocode_response.status_code)
+        rich.print("detail:", poisonstack_geocode_response.json())
+        raise typer.Exit(code=1)
+
+    geo_data = poisonstack_geocode_response.json()["data"][0]
+    location_coordinates = f"{round(geo_data['latitude'],3)},{round(geo_data['longitude'], 3)}"
+    location_timezone_offset = geo_data["timezone_module"]["offset_string"]
+    location_timezone = zoneinfo.ZoneInfo(geo_data["timezone_module"]["name"])
+
     meteomatics_auth_header = base64.b64encode(
         f"{config.meteomatics_username}:{config.meteomatics_password}".encode()
     ).decode()
@@ -93,9 +111,6 @@ def forecast(
         rich.print("status code:", meteomatics_auth_response.status_code)
         rich.print("detail:", meteomatics_auth_response.json())
         raise typer.Exit(code=1)
-
-    location_coordinates = "52.39,13.06"  # TODO
-    location_timezone_offset = "+01:00"
 
     meteomatics_access_token = meteomatics_auth_response.json()["access_token"]
     meteomatics_response = requests.post(
@@ -118,6 +133,8 @@ def forecast(
         rich.print("detail:", meteomatics_auth_response.json())
         raise typer.Exit(code=1)
 
+    rich.print(f"Forcast for [bold]{geo_data['name']} {geo_data['country']} ({location_coordinates})[/]")
+
     for delta_day in range(skip_days, skip_days + take_days):
         day = datetime.date.today() + datetime.timedelta(days=delta_day)
 
@@ -137,12 +154,11 @@ def forecast(
             ForcastResolution.SIX_HOUR: datetime.timedelta(hours=6),
             ForcastResolution.TWELVE_HOUR: datetime.timedelta(hours=12),
         }[resolution]
-        timezone = _parse_timezone(location_timezone_offset)
         dt = datetime.datetime.combine(
-            day, datetime.time(0, 0, 0), timezone
+            day, datetime.time(0, 0, 0), location_timezone
         )
         while True:
-            if dt > datetime.datetime.now(timezone):
+            if dt > datetime.datetime.now(location_timezone):
                 temperature = _get_parameter(meteomatics_response, "t_2m:C", dt)
                 windspeed = _get_parameter(meteomatics_response, "wind_speed_10m:ms", dt)
                 precipitation = _get_parameter(meteomatics_response, "precip_1h:mm", dt)
@@ -166,8 +182,7 @@ def forecast(
         console.print(table)
 
 
-def _parse_timezone(location_timezone_offset: str) -> datetime.timezone:
-    return datetime.timezone(datetime.timedelta(hours=1))  # TODO
+
 
 
 def _get_parameter(
