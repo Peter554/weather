@@ -26,7 +26,7 @@ def build_forecast_datetimes(
     skip_days: int, take_days: int, resolution: ForcastResolution, timezone_name: str
 ) -> list[datetime.datetime]:
     location_timezone = zoneinfo.ZoneInfo(timezone_name)
-    today_in_timezone = datetime.datetime.now().astimezone(location_timezone).date()
+    today_in_timezone = datetime.datetime.now(location_timezone).date()
     start_dt = datetime.datetime.combine(
         today_in_timezone + datetime.timedelta(days=skip_days),
         datetime.time(0, 0, 0),
