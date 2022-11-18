@@ -92,7 +92,10 @@ def forecast(
                 str(dt.time()),
                 dt_forecast.symbol_description,
                 utils.colorize_temperature(dt_forecast.temperature_celsius),
-                str(dt_forecast.wind_speed_meters_per_second),
+                utils.format_wind(
+                    dt_forecast.wind_speed_meters_per_second,
+                    dt_forecast.wind_direction_degrees,
+                ),
                 str(dt_forecast.precipitation_mm_per_hour),
             )
 

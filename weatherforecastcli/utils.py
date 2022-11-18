@@ -61,3 +61,21 @@ def colorize_temperature(temperature: float) -> str:
     else:
         color = "blue"
     return f"[{color}]{temperature}[/]"
+
+
+def format_wind(
+    wind_speed_meters_per_second: float,
+    wind_direction_degrees: float,
+) -> str:
+    wind_direction_description = {
+        0: " N",
+        1: "NE",
+        2: " E",
+        3: "SE",
+        4: " S",
+        5: "SW",
+        6: " W",
+        7: "NW",
+        8: " N",
+    }[round((wind_direction_degrees + 360) % 360 / 45)]
+    return f"{wind_speed_meters_per_second} {wind_direction_description}"

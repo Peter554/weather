@@ -35,6 +35,7 @@ class DateTimeForecast(pydantic.BaseModel):
     dt: datetime.datetime
     temperature_celsius: float
     wind_speed_meters_per_second: float
+    wind_direction_degrees: float
     precipitation_mm_per_hour: float
     symbol_index: int
 
@@ -71,7 +72,10 @@ class DateTimeForecast(pydantic.BaseModel):
         dt: datetime.datetime,
     ) -> "DateTimeForecast":
         temperature = cls._get_parameter(meteomatics_response, "t_2m:C", dt)
-        windspeed = cls._get_parameter(meteomatics_response, "wind_speed_10m:ms", dt)
+        wind_speed = cls._get_parameter(meteomatics_response, "wind_speed_10m:ms", dt)
+        wind_direction_degrees = cls._get_parameter(
+            meteomatics_response, "wind_dir_10m:d", dt
+        )
         precipitation = cls._get_parameter(meteomatics_response, "precip_1h:mm", dt)
         symbol_index = cls._get_parameter(
             meteomatics_response, "weather_symbol_1h:idx", dt
@@ -79,7 +83,8 @@ class DateTimeForecast(pydantic.BaseModel):
         return DateTimeForecast(
             dt=dt,
             temperature_celsius=temperature,
-            wind_speed_meters_per_second=windspeed,
+            wind_speed_meters_per_second=wind_speed,
+            wind_direction_degrees=wind_direction_degrees,
             precipitation_mm_per_hour=precipitation,
             symbol_index=symbol_index,
         )
@@ -116,7 +121,9 @@ def get_forecast(
     datetimes: list[datetime.datetime],  # tz aware
 ) -> Forecast:
     datetimes_parameter = ",".join([dt.isoformat() for dt in sorted(datetimes)])
-    parameters_parameter = "t_2m:C,wind_speed_10m:ms,precip_1h:mm,weather_symbol_1h:idx"
+    parameters_parameter = (
+        "t_2m:C,wind_speed_10m:ms,wind_dir_10m:d,precip_1h:mm,weather_symbol_1h:idx"
+    )
     location_parameter = f"{latitude},{longitude}"
 
     response = requests.post(
