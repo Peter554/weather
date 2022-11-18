@@ -8,6 +8,8 @@ Just for fun!
 
 ## Usage
 
+Requires Python 3.10+.
+
 * Create a free account on both Positionstack & Meteomatics.
 * Install [Poetry](https://python-poetry.org/) (I haven't published to PyPI, just hacking).
 * Clone this repo.
