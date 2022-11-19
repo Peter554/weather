@@ -84,7 +84,7 @@ class DailyForecastRenderer:
         )
         table.add_row(
             ":sunrise: ",
-            f"{forecast.sunrise.strftime('%-I:%M%P')}/{forecast.sunset.strftime('%-I:%M%P')}",
+            f"{forecast.sunrise.strftime('%-I:%M %P').upper()} / {forecast.sunset.strftime('%-I:%M %P').upper()}",
         )
         return table
 
