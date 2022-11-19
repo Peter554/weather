@@ -1,105 +1,82 @@
-import rich
-import rich.console
-import rich.table
-import typer
+import datetime
+import zoneinfo
 
-import weatherforecastcli.meteomatics as meteomatics
+import typer
+from rich.console import Console
+
+
 import weatherforecastcli.positionstack as positionstack
+import weatherforecastcli.openmeteo as openmeteo
+import weatherforecastcli.render as render
 import weatherforecastcli.utils as utils
-from weatherforecastcli.config import Config
+import weatherforecastcli.config as config
 
 app = typer.Typer(help="Weather forecast CLI.")
-console = rich.console.Console()
+console = Console()
 
 
 @app.command()
 def init(
-    meteomatics_username: str = typer.Option(..., prompt=True),
-    meteomatics_password: str = typer.Option(..., prompt=True),
-    positionstack_access_key: str = typer.Option(..., prompt=True),
+    positionstack_access_key: str = typer.Option(
+        ..., prompt=True, help="Positionstack access key, used for geocoding."
+    ),
 ) -> None:
     """
-    Initializes the CLI, setting the user credentials.
+    Initializes the CLI.
     """
-    config = Config(
-        meteomatics_username=meteomatics_username,
-        meteomatics_password=meteomatics_password,
+    config_ = config.Config(
         positionstack_access_key=positionstack_access_key,
     )
-    config.save()
+    config_.save()
 
 
 @app.command()
-def forecast(
-    location: str,
-    skip_days: int = 0,
-    take_days: int = 2,
-    resolution: utils.ForcastResolution = utils.ForcastResolution.THREE_HOUR,
-) -> None:
+def forecast(location: str, start_date: str | None = None, days: int = 4) -> None:
     """
     Fetch and display a weather forecast.
     """
-    config = Config.load()
-    if config is None:
-        rich.print("[bold red]Missing config![/]")
-        rich.print("Run `init` to initialize the CLI.")
+    try:
+        config_ = config.Config.load()
+    except config.MissingConfigError:
+        console.print("[bold red]Missing config.[/]")
+        console.print("Run `init` to initialize the CLI.")
+        raise typer.Exit(code=1)
+    except config.CorruptedConfigError:
+        console.print("[bold red]Corrupted config.[/]")
+        console.print("Run `init` to re-initialize the CLI.")
         raise typer.Exit(code=1)
 
     try:
         geocoded_location = positionstack.geocode(
-            config.positionstack_access_key, location
+            config_.positionstack_access_key, location
         )
     except positionstack.PositionstackError as e:
-        rich.print("[bold red]Failed to geocode via positionstack![/]")
-        rich.print("status code: ", e.status_code)
-        rich.print("detail: ", e.detail)
+        console.print("[bold red]Failed to geocode via positionstack.[/]")
+        console.print("status code: ", e.status_code)
+        console.print("detail: ", e.detail)
         raise typer.Exit(code=1)
 
-    datetimes = utils.build_forecast_datetimes(
-        skip_days, take_days, resolution, geocoded_location.timezone_name
+    location_timezone = zoneinfo.ZoneInfo(geocoded_location.timezone_name)
+    today_at_location = datetime.datetime.now(location_timezone).date()
+    start_date_date = (
+        today_at_location if start_date is None else utils.parse_date(start_date)
     )
-    dates = set([dt.date() for dt in datetimes])
+    end_date_date = start_date_date + datetime.timedelta(days=days - 1)
 
     try:
-        access_token = meteomatics.get_access_token(
-            username=config.meteomatics_username,
-            password=config.meteomatics_password,
-        )
-        forecast = meteomatics.get_forecast(
-            access_token=access_token,
+        daily_forecast = openmeteo.get_daily_forecast(
             latitude=geocoded_location.latitude,
             longitude=geocoded_location.longitude,
-            datetimes=datetimes,
+            start_date=start_date_date,
+            end_date=end_date_date,
         )
-    except meteomatics.MeteomaticsError as e:
-        rich.print("[bold red]Failed to call meteometrics![/]")
-        rich.print("status code: ", e.status_code)
-        rich.print("detail: ", e.detail)
+    except openmeteo.OpenmeteoError as e:
+        console.print("[bold red]Failed to get forecast from Open-Meteo.[/]")
+        console.print("status code: ", e.status_code)
+        console.print("detail: ", e.detail)
         raise typer.Exit(code=1)
 
-    rich.print(f"Forcast for [bold]{geocoded_location}[/]")
-    for date in sorted(dates):
-        table = rich.table.Table(title=str(date))
-        table.add_column("Time", justify="left")
-        table.add_column("Summary", justify="right")
-        table.add_column("Temperature (°C)", justify="right")
-        table.add_column("Wind speed (m/s)", justify="right")
-        table.add_column("Precipitation (mm/h)", justify="right")
-
-        for dt in sorted([dt for dt in datetimes if dt.date() == date]):
-            dt_forecast = forecast.datetimes[dt]
-            table.add_row(
-                str(dt.time()),
-                dt_forecast.symbol_description,
-                utils.colorize_temperature(dt_forecast.temperature_celsius),
-                utils.format_wind(
-                    dt_forecast.wind_speed_meters_per_second,
-                    dt_forecast.wind_direction_degrees,
-                ),
-                str(dt_forecast.precipitation_mm_per_hour),
-            )
-
-        console.print(table)
+    render.DailyForecastRenderer().render(console, geocoded_location, daily_forecast)
 
 
 def main():
