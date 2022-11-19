@@ -5,11 +5,12 @@ import typer
 from rich.console import Console
 
 
-import weatherforecastcli.positionstack as positionstack
+import weatherforecastcli.geocoding as geocoding
 import weatherforecastcli.openmeteo as openmeteo
 import weatherforecastcli.render as render
 import weatherforecastcli.utils as utils
 import weatherforecastcli.config as config
+import weatherforecastcli.errors as errors
 
 app = typer.Typer(name="weather", help="Weather forecast CLI.")
 console = Console(style="white on grey15", record=True)
@@ -42,23 +43,23 @@ def forecast(
     """
     try:
         config_ = config.Config.load()
-    except config.MissingConfigError:
+    except errors.MissingConfigError:
         console.print("[bold red]Missing config.[/]")
         console.print("Run `init` to initialize the CLI.")
         raise typer.Exit(code=1)
-    except config.CorruptedConfigError:
+    except errors.CorruptedConfigError:
         console.print("[bold red]Corrupted config.[/]")
         console.print("Run `init` to re-initialize the CLI.")
         raise typer.Exit(code=1)
 
     try:
-        geocoded_location = positionstack.geocode(
-            config_.positionstack_access_key, location
+        geocoded_location = geocoding.geocode(
+            positionstack_access_key=config_.positionstack_access_key,
+            location_query=location,
         )
-    except positionstack.PositionstackError as e:
-        console.print("[bold red]Failed to geocode via positionstack.[/]")
-        console.print("status code: ", e.status_code)
-        console.print("detail: ", e.detail)
+    except errors.GeocodingError as e:
+        console.print("[bold red]Failed to geocode.[/]")
+        console.print("error: ", str(e))
         raise typer.Exit(code=1)
 
     location_timezone = zoneinfo.ZoneInfo(geocoded_location.timezone_name)
@@ -75,10 +76,9 @@ def forecast(
             start_date=start_date_date,
             end_date=end_date_date,
         )
-    except openmeteo.OpenmeteoError as e:
+    except errors.OpenmeteoError as e:
         console.print("[bold red]Failed to get forecast from Open-Meteo.[/]")
-        console.print("status code: ", e.status_code)
-        console.print("detail: ", e.detail)
+        console.print("error: ", str(e))
         raise typer.Exit(code=1)
 
     render.DailyForecastRenderer().render(console, geocoded_location, daily_forecast)

@@ -5,12 +5,7 @@ import pydantic
 import requests
 
 import weatherforecastcli.utils as utils
-
-
-class OpenmeteoError(Exception):
-    def __init__(self, status_code: int | None, detail: dict | str | None):
-        self.status_code = status_code
-        self.detail = detail
+import weatherforecastcli.errors as errors
 
 
 class DayForecast(pydantic.BaseModel):
@@ -59,7 +54,7 @@ def get_daily_forecast(
             detail = response.json()
         except json.JSONDecodeError:
             detail = response.text
-        raise OpenmeteoError(response.status_code, detail)
+        raise errors.OpenmeteoError(f"status={response.status_code},detail={detail}")
 
     data = response.json()
     assert data["daily_units"] == {  # sanity check

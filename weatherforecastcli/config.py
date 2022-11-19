@@ -1,20 +1,12 @@
 import json
 import pathlib
-import typing as t
 
 import pydantic
 
-
-class ConfigError(Exception):
-    ...
+import weatherforecastcli.errors as errors
 
 
-class MissingConfigError(ConfigError):
-    ...
-
-
-class CorruptedConfigError(ConfigError):
-    ...
+APP_DIR = pathlib.Path(pathlib.Path.home(), ".weather")
 
 
 class Config(pydantic.BaseModel):
@@ -22,7 +14,7 @@ class Config(pydantic.BaseModel):
 
     @classmethod
     def _path(cls) -> pathlib.Path:
-        return pathlib.Path(pathlib.Path.home(), ".weather/config.json")
+        return pathlib.Path(APP_DIR, "config.json")
 
     def save(self) -> None:
         self._path().parent.mkdir(parents=True, exist_ok=True)
@@ -32,9 +24,9 @@ class Config(pydantic.BaseModel):
     @classmethod
     def load(cls) -> "Config":
         if not cls._path().exists():
-            raise MissingConfigError
+            raise errors.MissingConfigError
         with open(cls._path()) as f:
             try:
                 return cls.parse_obj(json.load(f))
             except pydantic.ValidationError as e:
-                raise CorruptedConfigError from e
+                raise errors.CorruptedConfigError from e

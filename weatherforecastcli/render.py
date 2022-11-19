@@ -2,7 +2,7 @@ from rich.columns import Columns
 from rich.table import Table
 
 
-from weatherforecastcli.positionstack import GeocodedLocation
+from weatherforecastcli.geocoding import GeocodedLocation
 from weatherforecastcli.openmeteo import DailyForecast, DayForecast
 
 

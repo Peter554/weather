@@ -1,26 +1,13 @@
 import json
 
-import pydantic
 import requests
 
-
-class PositionstackError(Exception):
-    def __init__(self, status_code: int | None, detail: dict | str | None):
-        self.status_code = status_code
-        self.detail = detail
+import weatherforecastcli.errors as errors
 
 
-class GeocodedLocation(pydantic.BaseModel):
-    latitude: float
-    longitude: float
-    name: str
-    country_name: str
-    country_code: str
-    timezone_name: str
-    timezone_offset_string: str
+def geocode(access_key: str, location_query: str) -> "GeocodedLocation":
+    from weatherforecastcli.geocoding import GeocodedLocation
 
-
-def geocode(access_key: str, location_query: str) -> GeocodedLocation:
     response = requests.get(
         "http://api.positionstack.com/v1/forward?"
         f"access_key={access_key}&query={location_query}&timezone_module=1"
@@ -30,7 +17,9 @@ def geocode(access_key: str, location_query: str) -> GeocodedLocation:
             detail = response.json()
         except json.JSONDecodeError:
             detail = response.text
-        raise PositionstackError(response.status_code, detail)
+        raise errors.PositionstackError(
+            f"status={response.status_code},detail={detail}"
+        )
 
     geo_data = response.json()["data"][0]
     return GeocodedLocation(
@@ -40,5 +29,4 @@ def geocode(access_key: str, location_query: str) -> GeocodedLocation:
         country_name=geo_data["country"],
         country_code=geo_data["country_code"],
         timezone_name=geo_data["timezone_module"]["name"],
-        timezone_offset_string=geo_data["timezone_module"]["offset_string"],
     )
