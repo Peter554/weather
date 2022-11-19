@@ -1,13 +1,23 @@
-import dataclasses
 import json
 import pathlib
 import typing as t
 
+import pydantic
 
-@dataclasses.dataclass(kw_only=True, frozen=True)
-class Config:
-    meteomatics_username: str
-    meteomatics_password: str
+
+class ConfigError(Exception):
+    ...
+
+
+class MissingConfigError(ConfigError):
+    ...
+
+
+class CorruptedConfigError(ConfigError):
+    ...
+
+
+class Config(pydantic.BaseModel):
     positionstack_access_key: str
 
     @classmethod
@@ -17,11 +27,14 @@ class Config:
     def save(self) -> None:
         self._path().parent.mkdir(parents=True, exist_ok=True)
         with open(self._path(), "w") as f:
-            json.dump(dataclasses.asdict(self), f, indent=2)
+            json.dump(self.dict(), f, indent=2)
 
     @classmethod
-    def load(cls) -> t.Optional["Config"]:
+    def load(cls) -> "Config":
         if not cls._path().exists():
-            return None
+            raise MissingConfigError
         with open(cls._path()) as f:
-            return cls(**json.load(f))
+            try:
+                return cls.parse_obj(json.load(f))
+            except pydantic.ValidationError as e:
+                raise CorruptedConfigError from e

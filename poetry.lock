@@ -333,6 +333,14 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "tzdata"
+version = "2022.6"
+description = "Provider of IANA time zone data"
+category = "main"
+optional = false
+python-versions = ">=2"
+
+[[package]]
 name = "urllib3"
 version = "1.26.12"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
@@ -348,7 +356,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.10"
-content-hash = "f547aeb4e6436bae09f808225b9e126f4c1eabad20e27e821697c7368bf7379e"
+content-hash = "baed7273a2477265550abff74d6f990c0cc92a65eeb3faf699052596cde94025"
 
 [metadata.files]
 attrs = []
@@ -394,4 +402,5 @@ typer = []
 types-requests = []
 types-urllib3 = []
 typing-extensions = []
+tzdata = []
 urllib3 = []
