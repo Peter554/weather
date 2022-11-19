@@ -19,6 +19,6 @@ Requires Python 3.10+.
 $ weather forecast --help
 ```
 
-![](/usage.png)
+![](/usage.svg)
 
 

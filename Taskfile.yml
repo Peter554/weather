@@ -13,3 +13,7 @@ tasks:
   test:
     cmds:
       - poetry run pytest {{.CLI_ARGS}}
+
+  create-usage-svg:
+    cmds:
+      - poetry run weather forecast "Potsdam DE" --export-svg usage.svg

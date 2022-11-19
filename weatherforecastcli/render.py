@@ -70,36 +70,37 @@ class DailyForecastRenderer:
             "", WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, "-")
         )
         table.add_row(
-            ":thermometer: ",
+            ":thermometer:",
             f"{colorize_temperature(forecast.temperature_min_celsius)}/{colorize_temperature(forecast.temperature_max_celsius)} °C "
             f"({colorize_temperature(forecast.apparent_temperature_min_celsius)}/{colorize_temperature(forecast.apparent_temperature_max_celsius)} °C)",
         )
         table.add_row(
-            ":cloud_with_rain: ",
-            f"{forecast.total_precipitation_mm} mm ({round(forecast.total_precipitation_hours, 1)} hr)",
+            ":cloud_with_rain:",
+            f"{forecast.total_precipitation_mm} mm ({round(forecast.total_precipitation_hours)} hr)",
         )
         table.add_row(
-            ":wind_face: ",
-            f"MAX {forecast.max_windspeed_meters_per_second} m/s ({get_wind_direction(forecast.dominant_wind_direction_degrees)})",
+            ":wind_face:",
+            f"{forecast.max_windspeed_meters_per_second} m/s {get_wind_direction(forecast.dominant_wind_direction_degrees)}",
         )
         table.add_row(
-            ":sunrise: ",
-            f"{forecast.sunrise.strftime('%-I:%M %P').upper()} / {forecast.sunset.strftime('%-I:%M %P').upper()}",
+            ":sunrise:",
+            f"{forecast.sunrise.strftime('%H:%M')} / {forecast.sunset.strftime('%H:%M')}",
         )
         return table
 
 
 def colorize_temperature(temperature: float) -> str:
+    # https://rich.readthedocs.io/en/stable/appendix/colors.html#appendix-colors
     if temperature >= 30:
-        color = "red"
+        color = "bright_red"
     elif temperature >= 20:
-        color = "orange"
+        color = "dark_orange3"
     elif temperature >= 10:
-        color = "yellow"
+        color = "yellow3"
     elif temperature >= 0:
-        color = "white"
+        color = "sky_blue1"
     else:
-        color = "blue"
+        color = "dodger_blue2"
     return f"[{color}]{temperature}[/]"
 
 

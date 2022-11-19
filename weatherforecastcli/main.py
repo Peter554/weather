@@ -12,7 +12,7 @@ import weatherforecastcli.utils as utils
 import weatherforecastcli.config as config
 
 app = typer.Typer(help="Weather forecast CLI.")
-console = Console()
+console = Console(style="white on grey15", record=True)
 
 
 @app.command()
@@ -31,7 +31,12 @@ def init(
 
 
 @app.command()
-def forecast(location: str, start_date: str | None = None, days: int = 4) -> None:
+def forecast(
+    location: str,
+    start_date: str | None = None,
+    days: int = 4,
+    export_svg: str | None = None,
+) -> None:
     """
     Fetch and display a weather forecast.
     """
@@ -77,6 +82,10 @@ def forecast(location: str, start_date: str | None = None, days: int = 4) -> Non
         raise typer.Exit(code=1)
 
     render.DailyForecastRenderer().render(console, geocoded_location, daily_forecast)
+
+    if export_svg:
+        with open(export_svg, "w") as f:
+            f.write(console.export_svg())
 
 
 def main():
