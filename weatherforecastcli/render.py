@@ -5,6 +5,46 @@ from rich.table import Table
 from weatherforecastcli.positionstack import GeocodedLocation
 from weatherforecastcli.openmeteo import DailyForecast, DayForecast
 
+
+class DailyForecastRenderer:
+    def render(self, console, location: GeocodedLocation, forecast: DailyForecast):
+        dates = sorted(forecast.days.keys())
+        console.print(
+            Columns(
+                renderables=[self._render_day(forecast.days[d]) for d in dates],
+                title=f"[bold]Weather forecast for\n[green]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
+                equal=True,
+            )
+        )
+
+    def _render_day(self, forecast: DayForecast):
+        table = Table(show_header=False, show_lines=True, expand=True)
+        table.add_column("", justify="left")
+        table.add_column("", justify="right")
+        table.add_row("", f"[bold green]{forecast.date.strftime('%A %d %B')}[/]")
+        table.add_row(
+            "", WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, "-")
+        )
+        table.add_row(
+            ":thermometer:",
+            f"{colorize_temperature(forecast.temperature_min_celsius)}/{colorize_temperature(forecast.temperature_max_celsius)}°C "
+            f"({colorize_temperature(forecast.apparent_temperature_min_celsius)}/{colorize_temperature(forecast.apparent_temperature_max_celsius)}°C)",
+        )
+        table.add_row(
+            ":cloud_with_rain:",
+            f"{forecast.total_precipitation_mm}mm, {round(forecast.total_precipitation_hours)}hr",
+        )
+        table.add_row(
+            ":wind_face:",
+            f"{forecast.max_windspeed_meters_per_second}m/s, {get_wind_direction(forecast.dominant_wind_direction_degrees)}",
+        )
+        table.add_row(
+            ":sunrise:",
+            f"{forecast.sunrise.strftime('%H:%M')}, {forecast.sunset.strftime('%H:%M')}",
+        )
+        return table
+
+
 WEATHERCODE_DESCRIPTION_MAPPING = {
     0: "Clear sky",
     #
@@ -47,46 +87,6 @@ WEATHERCODE_DESCRIPTION_MAPPING = {
     96: "Thunderstorm + light hail",
     99: "Thunderstorm + heavy hail",
 }
-
-
-class DailyForecastRenderer:
-    def render(self, console, location: GeocodedLocation, forecast: DailyForecast):
-        dates = sorted(forecast.days.keys())
-        location_str = f"{location.name}, {location.country_name} {location.latitude, location.longitude}"
-        console.print(
-            Columns(
-                renderables=[self._render_day(forecast.days[d]) for d in dates],
-                title=f"[bold]Weather forecast for [green]{location_str}[/].[/]",
-                equal=True,
-            )
-        )
-
-    def _render_day(self, forecast: DayForecast):
-        table = Table(show_header=False, show_lines=True, expand=True)
-        table.add_column("", justify="left")
-        table.add_column("", justify="right")
-        table.add_row("", f"[bold green]{forecast.date.strftime('%A %d %B')}[/]")
-        table.add_row(
-            "", WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, "-")
-        )
-        table.add_row(
-            ":thermometer:",
-            f"{colorize_temperature(forecast.temperature_min_celsius)}/{colorize_temperature(forecast.temperature_max_celsius)}°C "
-            f"({colorize_temperature(forecast.apparent_temperature_min_celsius)}/{colorize_temperature(forecast.apparent_temperature_max_celsius)}°C)",
-        )
-        table.add_row(
-            ":cloud_with_rain:",
-            f"{forecast.total_precipitation_mm}mm, {round(forecast.total_precipitation_hours)}hr",
-        )
-        table.add_row(
-            ":wind_face:",
-            f"{forecast.max_windspeed_meters_per_second}m/s, {get_wind_direction(forecast.dominant_wind_direction_degrees)}",
-        )
-        table.add_row(
-            ":sunrise:",
-            f"{forecast.sunrise.strftime('%H:%M')}, {forecast.sunset.strftime('%H:%M')}",
-        )
-        return table
 
 
 def colorize_temperature(temperature: float) -> str:

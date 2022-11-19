@@ -11,7 +11,7 @@ import weatherforecastcli.render as render
 import weatherforecastcli.utils as utils
 import weatherforecastcli.config as config
 
-app = typer.Typer(help="Weather forecast CLI.")
+app = typer.Typer(name="weather", help="Weather forecast CLI.")
 console = Console(style="white on grey15", record=True)
 
 
