@@ -15,11 +15,25 @@ Requires Python 3.10+.
 * Initialize the CLI: `weather init`
 * Start getting weather forecasts!
 
+## Forecast
+
 ```
-$ weather forecast --help
+weather forecast --help
+```
+
+Summary forecast:
+
+```
+weather forecast "Death Valley"
 ```
 
 ![](/usage.svg)
+
+Detailed forecast:
+
+```
+weather forecast "Death Valley" --resolution 3H
+```
 
 ![](/usage-detailed.svg)
 
