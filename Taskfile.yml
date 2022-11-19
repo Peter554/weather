@@ -16,4 +16,5 @@ tasks:
 
   create-usage-svg:
     cmds:
-      - poetry run weather forecast "Death valley USA" --export-svg usage.svg
+      - poetry run weather forecast "Death Valley" --export-svg usage.svg
+      - poetry run weather forecast "Death Valley" --export-svg usage-detailed.svg --resolution 3H

@@ -3,7 +3,7 @@
 A little weather CLI using [Positionstack](https://positionstack.com/) for geocoding 
 and [Open-Meteo](https://open-meteo.com/) for weather data.
 
-Just a small hacking project. Missing tests, limited error handling, no CI etc... 
+A small hacking project. Missing tests, limited error handling, no CI etc... 
 Just for fun!
 
 ## Usage
@@ -20,5 +20,7 @@ $ weather forecast --help
 ```
 
 ![](/usage.svg)
+
+![](/usage-detailed.svg)
 
 

@@ -1,3 +1,4 @@
+import collections
 import datetime
 import json
 
@@ -8,7 +9,22 @@ import weatherforecastcli.utils as utils
 import weatherforecastcli.errors as errors
 
 
-class DayForecast(pydantic.BaseModel):
+class ForecastHour(pydantic.BaseModel):
+    hour: datetime.datetime
+    #
+    temperature_celsius: float
+    apparent_temperature_celsius: float
+    #
+    precipitation_mm: float
+    snowfall_cm: float
+    #
+    windspeed_meters_per_second: float
+    wind_direction_degrees: float
+    #
+    weathercode: int
+
+
+class ForecastDay(pydantic.BaseModel):
     date: datetime.date
     #
     temperature_min_celsius: float
@@ -26,26 +42,31 @@ class DayForecast(pydantic.BaseModel):
     weathercode: int
     sunrise: datetime.datetime
     sunset: datetime.datetime
+    #
+    hours: dict[datetime.datetime, ForecastHour]
 
 
-class DailyForecast(pydantic.BaseModel):
-    days: dict[datetime.date, DayForecast]
+class Forecast(pydantic.BaseModel):
+    days: dict[datetime.date, ForecastDay]
 
 
-def get_daily_forecast(
+def get_forecast(
     *,
     latitude: float,
     longitude: float,
     start_date: datetime.date,
     end_date: datetime.date,
-) -> DailyForecast:
+) -> Forecast:
     qs = (
         f"latitude={latitude}&longitude={longitude}&timezone=auto"
         "&temperature_unit=celsius&windspeed_unit=ms&precipitation_unit=mm&timeformat=iso8601"
         f"&start_date={start_date}&end_date={end_date}"
+        # daily parameters
         "&daily=temperature_2m_min,temperature_2m_max,apparent_temperature_min,apparent_temperature_max,"
         "precipitation_sum,precipitation_hours,snowfall_sum,"
         "windspeed_10m_max,winddirection_10m_dominant,weathercode,sunrise,sunset"
+        # hourly parameters
+        "&hourly=temperature_2m,apparent_temperature,windspeed_10m,winddirection_10m,precipitation,snowfall,weathercode"
     )
 
     response = requests.get(f"https://api.open-meteo.com/v1/forecast?{qs}")
@@ -72,11 +93,40 @@ def get_daily_forecast(
         "sunrise": "iso8601",
         "sunset": "iso8601",
     }
+    assert data["hourly_units"] == {  # sanity check
+        "time": "iso8601",
+        "temperature_2m": "°C",
+        "apparent_temperature": "°C",
+        "windspeed_10m": "m/s",
+        "winddirection_10m": "°",
+        "precipitation": "mm",
+        "snowfall": "cm",
+        "weathercode": "wmo code",
+    }
 
-    dates = [utils.parse_date(d) for d in data["daily"]["time"]]
-    return DailyForecast(
+    daily_dates = [utils.parse_date(d) for d in data["daily"]["time"]]
+
+    hours = [
+        datetime.datetime.strptime(t, "%Y-%m-%dT%H:%M") for t in data["hourly"]["time"]
+    ]
+    forecast_hours_by_date: dict[
+        datetime.date, dict[datetime.datetime, ForecastHour]
+    ] = collections.defaultdict(dict)
+    for idx, hour in enumerate(hours):
+        forecast_hours_by_date[hour.date()][hour] = ForecastHour(
+            hour=hour,
+            temperature_celsius=data["hourly"]["temperature_2m"][idx],
+            apparent_temperature_celsius=data["hourly"]["apparent_temperature"][idx],
+            precipitation_mm=data["hourly"]["precipitation"][idx],
+            snowfall_cm=data["hourly"]["snowfall"][idx],
+            windspeed_meters_per_second=data["hourly"]["windspeed_10m"][idx],
+            wind_direction_degrees=data["hourly"]["winddirection_10m"][idx],
+            weathercode=data["hourly"]["weathercode"][idx],
+        )
+
+    return Forecast(
         days={
-            d: DayForecast(
+            d: ForecastDay(
                 date=d,
                 temperature_min_celsius=data["daily"]["temperature_2m_min"][idx],
                 temperature_max_celsius=data["daily"]["temperature_2m_max"][idx],
@@ -96,7 +146,8 @@ def get_daily_forecast(
                 weathercode=data["daily"]["weathercode"][idx],
                 sunrise=data["daily"]["sunrise"][idx],
                 sunset=data["daily"]["sunset"][idx],
+                hours=forecast_hours_by_date[d],
             )
-            for idx, d in enumerate(dates)
+            for idx, d in enumerate(daily_dates)
         }
     )
