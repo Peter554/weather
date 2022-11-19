@@ -1,23 +1,33 @@
 from rich.columns import Columns
 from rich.table import Table
+from rich.panel import Panel
+from rich.console import Group
+from rich.padding import Padding
 
 
 from weatherforecastcli.geocoding import GeocodedLocation
-from weatherforecastcli.openmeteo import DailyForecast, DayForecast
+from weatherforecastcli.openmeteo import Forecast, ForecastDay, ForecastHour
 
 
-class DailyForecastRenderer:
-    def render(self, console, location: GeocodedLocation, forecast: DailyForecast):
+class SummaryForecastRenderer:
+    def render(self, console, location: GeocodedLocation, forecast: Forecast):
         dates = sorted(forecast.days.keys())
         console.print(
-            Columns(
-                renderables=[self._render_day(forecast.days[d]) for d in dates],
-                title=f"[bold]Weather forecast for\n[green]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
-                equal=True,
+            Panel(
+                Group(
+                    f"[bold]Weather forecast for\n[green]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
+                    Padding(
+                        Columns(
+                            [self._render_day(forecast.days[d]) for d in dates],
+                            equal=True,
+                        ),
+                        (1, 0, 0, 0),
+                    ),
+                )
             )
         )
 
-    def _render_day(self, forecast: DayForecast):
+    def _render_day(self, forecast: ForecastDay):
         table = Table(show_header=False, show_lines=True, expand=True)
         table.add_column("", justify="left")
         table.add_column("", justify="right")
@@ -42,6 +52,73 @@ class DailyForecastRenderer:
             ":sunrise:",
             f"{forecast.sunrise.strftime('%H:%M')}, {forecast.sunset.strftime('%H:%M')}",
         )
+        return table
+
+
+class DetailedForecastRenderer:
+    def render(
+        self,
+        console,
+        location: GeocodedLocation,
+        forecast: Forecast,
+        resolution_hours: int,
+    ):
+        dates = sorted(forecast.days.keys())
+        console.print(
+            Panel(
+                Group(
+                    f"[bold]Weather forecast for\n[green]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
+                    Padding(
+                        Group(
+                            *[
+                                self._render_day(forecast.days[d], resolution_hours)
+                                for d in dates
+                            ]
+                        ),
+                        (1, 0, 0, 0),
+                    ),
+                )
+            )
+        )
+
+    def _render_day(self, forecast: ForecastDay, resolution_hours: int):
+        hours = sorted(forecast.hours.keys())
+        hours = [h for h in hours if h.hour % resolution_hours == 0]
+        return Panel(
+            Group(
+                f"[bold green underline]{forecast.date.strftime('%A %d %B')}[/]",
+                Padding(
+                    Group(
+                        f"[bold green]Summary:\t\t{WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, '-')}[/]",
+                        f"[bold]Temperature:[/]\t\t{colorize_temperature(forecast.temperature_min_celsius)}/{colorize_temperature(forecast.temperature_max_celsius)}°C "
+                        f"({colorize_temperature(forecast.apparent_temperature_min_celsius)}/{colorize_temperature(forecast.apparent_temperature_max_celsius)}°C)",
+                        f"[bold]Precipitation:[/]\t\t{forecast.total_precipitation_mm}mm, {round(forecast.total_precipitation_hours)}hr",
+                        f"[bold]Wind speed:[/]\t\t{forecast.max_windspeed_meters_per_second}m/s, {get_wind_direction(forecast.dominant_wind_direction_degrees)}",
+                        f"[bold]Sunrise/Sunset:[/]\t\t{forecast.sunrise.strftime('%H:%M')}, {forecast.sunset.strftime('%H:%M')}",
+                    ),
+                    (1, 0, 0, 0),
+                ),
+                Padding(
+                    self._render_hours([forecast.hours[h] for h in hours]), (1, 0, 0, 0)
+                ),
+            )
+        )
+
+    def _render_hours(self, forecasts: list[ForecastHour]):
+        table = Table(show_lines=True, expand=True)
+        table.add_column("Time", justify="left")
+        table.add_column("Summary", justify="right")
+        table.add_column("Temperature", justify="right")
+        table.add_column("Precipitation", justify="right")
+        table.add_column("Wind speed", justify="right")
+        for forecast in forecasts:
+            table.add_row(
+                forecast.hour.strftime("%H:%M"),
+                WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, "-"),
+                f"{colorize_temperature(forecast.temperature_celsius)}°C ({colorize_temperature(forecast.apparent_temperature_celsius)}°C)",
+                f"{forecast.precipitation_mm}mm",
+                f"{forecast.windspeed_meters_per_second}m/s, {get_wind_direction(forecast.wind_direction_degrees)}",
+            )
         return table
 
 

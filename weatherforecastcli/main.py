@@ -1,4 +1,5 @@
 import datetime
+import enum
 import zoneinfo
 
 import typer
@@ -31,11 +32,20 @@ def init(
     config_.save()
 
 
+class ForecastResolution(str, enum.Enum):
+    ONE_HOUR = "1H"
+    THREE_HOUR = "3H"
+    SIX_HOUR = "6H"
+    ONE_DAY = "1D"
+
+
 @app.command()
 def forecast(
     location: str,
     start_date: str | None = None,
     days: int = 4,
+    resolution: ForecastResolution = ForecastResolution.ONE_DAY,
+    #
     export_svg: str | None = None,
 ) -> None:
     """
@@ -70,7 +80,7 @@ def forecast(
     end_date_date = start_date_date + datetime.timedelta(days=days - 1)
 
     try:
-        daily_forecast = openmeteo.get_daily_forecast(
+        forecast = openmeteo.get_forecast(
             latitude=geocoded_location.latitude,
             longitude=geocoded_location.longitude,
             start_date=start_date_date,
@@ -81,7 +91,17 @@ def forecast(
         console.print("error: ", str(e))
         raise typer.Exit(code=1)
 
-    render.DailyForecastRenderer().render(console, geocoded_location, daily_forecast)
+    if resolution == ForecastResolution.ONE_DAY:
+        render.SummaryForecastRenderer().render(console, geocoded_location, forecast)
+    else:
+        resolution_hours = {
+            ForecastResolution.ONE_HOUR: 1,
+            ForecastResolution.THREE_HOUR: 3,
+            ForecastResolution.SIX_HOUR: 6,
+        }[resolution]
+        render.DetailedForecastRenderer().render(
+            console, geocoded_location, forecast, resolution_hours
+        )
 
     if export_svg:
         with open(export_svg, "w") as f:
