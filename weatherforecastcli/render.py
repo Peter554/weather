@@ -116,7 +116,7 @@ class DetailedForecastRenderer:
                 forecast.hour.strftime("%H:%M"),
                 WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, "-"),
                 f"{colorize_temperature(forecast.temperature_celsius)}°C ({colorize_temperature(forecast.apparent_temperature_celsius)}°C)",
-                f"{forecast.precipitation_mm}mm",
+                f"{forecast.precipitation_mm}mm/h",
                 f"{forecast.windspeed_meters_per_second}m/s, {get_wind_direction(forecast.wind_direction_degrees)}",
             )
         return table
