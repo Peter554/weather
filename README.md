@@ -10,7 +10,7 @@ Just for fun!
 
 Requires Python 3.10+.
 
-* Create a free account on both Positionstack.
+* Create a free account Positionstack.
 * Install the CLI: `pip install weatherforecastcli`
 * Initialize the CLI: `weather init`
 * Start getting weather forecasts!
