@@ -9,21 +9,23 @@ from weatherforecastcli.geocoding import GeocodedLocation
 from weatherforecastcli.openmeteo import Forecast, ForecastDay, ForecastHour
 
 
+def pad_upper(renderable):
+    return Padding(renderable, (1, 0, 0, 0))
+
+
 class SummaryForecastRenderer:
-    def render(self, console, location: GeocodedLocation, forecast: Forecast):
+    def render(self, location: GeocodedLocation, forecast: Forecast):
         dates = sorted(forecast.days.keys())
-        console.print(
-            Panel(
-                Group(
-                    f"[bold]Weather forecast for\n[green]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
-                    Padding(
-                        Columns(
-                            [self._render_day(forecast.days[d]) for d in dates],
-                            equal=True,
-                        ),
-                        (1, 0, 0, 0),
-                    ),
-                )
+        return Panel(
+            Group(
+                f"[strong]Weather forecast for\n"
+                f"[vstrong]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
+                pad_upper(
+                    Columns(
+                        [self._render_day(forecast.days[d]) for d in dates],
+                        equal=True,
+                    )
+                ),
             )
         )
 
@@ -31,7 +33,7 @@ class SummaryForecastRenderer:
         table = Table(show_header=False, show_lines=True, expand=True)
         table.add_column("", justify="left")
         table.add_column("", justify="right")
-        table.add_row("", f"[bold green]{forecast.date.strftime('%A %d %B')}[/]")
+        table.add_row("", f"[vstrong]{forecast.date.strftime('%A %d %B')}[/]")
         table.add_row(
             "", WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, "-")
         )
@@ -58,26 +60,23 @@ class SummaryForecastRenderer:
 class DetailedForecastRenderer:
     def render(
         self,
-        console,
         location: GeocodedLocation,
         forecast: Forecast,
         resolution_hours: int,
     ):
         dates = sorted(forecast.days.keys())
-        console.print(
-            Panel(
-                Group(
-                    f"[bold]Weather forecast for\n[green]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
-                    Padding(
-                        Group(
-                            *[
-                                self._render_day(forecast.days[d], resolution_hours)
-                                for d in dates
-                            ]
-                        ),
-                        (1, 0, 0, 0),
-                    ),
-                )
+        return Panel(
+            Group(
+                f"[strong]Weather forecast for\n"
+                f"[vstrong]{location.name}, {location.country_name} ({location.latitude}, {location.longitude})[/][/]",
+                pad_upper(
+                    Group(
+                        *[
+                            self._render_day(forecast.days[d], resolution_hours)
+                            for d in dates
+                        ]
+                    )
+                ),
             )
         )
 
@@ -86,21 +85,18 @@ class DetailedForecastRenderer:
         hours = [h for h in hours if h.hour % resolution_hours == 0]
         return Panel(
             Group(
-                f"[bold green underline]{forecast.date.strftime('%A %d %B')}[/]",
-                Padding(
+                f"[vstrong]{forecast.date.strftime('%A %d %B')}[/]",
+                pad_upper(
                     Group(
-                        f"[bold green]Summary:\t\t{WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, '-')}[/]",
-                        f"[bold]Temperature:[/]\t\t{colorize_temperature(forecast.temperature_min_celsius)}/{colorize_temperature(forecast.temperature_max_celsius)}°C "
+                        f"[vstrong]Summary:\t\t{WEATHERCODE_DESCRIPTION_MAPPING.get(forecast.weathercode, '-')}[/]",
+                        f"[strong]Temperature:[/]\t\t{colorize_temperature(forecast.temperature_min_celsius)}/{colorize_temperature(forecast.temperature_max_celsius)}°C "
                         f"({colorize_temperature(forecast.apparent_temperature_min_celsius)}/{colorize_temperature(forecast.apparent_temperature_max_celsius)}°C)",
-                        f"[bold]Precipitation:[/]\t\t{forecast.total_precipitation_mm}mm, {round(forecast.total_precipitation_hours)}hr",
-                        f"[bold]Wind speed:[/]\t\t{forecast.max_windspeed_meters_per_second}m/s, {get_wind_direction(forecast.dominant_wind_direction_degrees)}",
-                        f"[bold]Sunrise/Sunset:[/]\t\t{forecast.sunrise.strftime('%H:%M')}, {forecast.sunset.strftime('%H:%M')}",
-                    ),
-                    (1, 0, 0, 0),
+                        f"[strong]Precipitation:[/]\t\t{forecast.total_precipitation_mm}mm, {round(forecast.total_precipitation_hours)}hr",
+                        f"[strong]Wind speed:[/]\t\t{forecast.max_windspeed_meters_per_second}m/s, {get_wind_direction(forecast.dominant_wind_direction_degrees)}",
+                        f"[strong]Sunrise/Sunset:[/]\t\t{forecast.sunrise.strftime('%H:%M')}, {forecast.sunset.strftime('%H:%M')}",
+                    )
                 ),
-                Padding(
-                    self._render_hours([forecast.hours[h] for h in hours]), (1, 0, 0, 0)
-                ),
+                pad_upper(self._render_hours([forecast.hours[h] for h in hours])),
             )
         )
 

@@ -4,6 +4,7 @@ import zoneinfo
 
 import typer
 from rich.console import Console
+from rich.theme import Theme
 
 
 import weatherforecastcli.geocoding as geocoding
@@ -14,7 +15,18 @@ import weatherforecastcli.config as config
 import weatherforecastcli.errors as errors
 
 app = typer.Typer(name="weather", help="Weather forecast CLI.")
-console = Console(style="white on grey15", record=True)
+
+console = Console(
+    style="white on grey15",
+    theme=Theme(
+        {
+            "error": "bold red",
+            "strong": "bold",
+            "vstrong": "bold green",
+        }
+    ),
+    record=True,
+)
 
 
 @app.command()
@@ -36,6 +48,7 @@ class ForecastResolution(str, enum.Enum):
     ONE_HOUR = "1H"
     THREE_HOUR = "3H"
     SIX_HOUR = "6H"
+    TWELVE_HOUR = "12H"
     ONE_DAY = "1D"
 
 
@@ -54,11 +67,11 @@ def forecast(
     try:
         config_ = config.Config.load()
     except errors.MissingConfigError:
-        console.print("[bold red]Missing config.[/]")
+        console.print("[error]Missing config.[/]")
         console.print("Run `init` to initialize the CLI.")
         raise typer.Exit(code=1)
     except errors.CorruptedConfigError:
-        console.print("[bold red]Corrupted config.[/]")
+        console.print("[error]Corrupted config.[/]")
         console.print("Run `init` to re-initialize the CLI.")
         raise typer.Exit(code=1)
 
@@ -68,7 +81,7 @@ def forecast(
             location_query=location,
         )
     except errors.GeocodingError as e:
-        console.print("[bold red]Failed to geocode.[/]")
+        console.print("[error]Failed to geocode.[/]")
         console.print("error: ", str(e))
         raise typer.Exit(code=1)
 
@@ -87,20 +100,25 @@ def forecast(
             end_date=end_date_date,
         )
     except errors.OpenmeteoError as e:
-        console.print("[bold red]Failed to get forecast from Open-Meteo.[/]")
+        console.print("[error]Failed to get forecast from Open-Meteo.[/]")
         console.print("error: ", str(e))
         raise typer.Exit(code=1)
 
     if resolution == ForecastResolution.ONE_DAY:
-        render.SummaryForecastRenderer().render(console, geocoded_location, forecast)
+        console.print(
+            render.SummaryForecastRenderer().render(geocoded_location, forecast)
+        )
     else:
         resolution_hours = {
             ForecastResolution.ONE_HOUR: 1,
             ForecastResolution.THREE_HOUR: 3,
             ForecastResolution.SIX_HOUR: 6,
+            ForecastResolution.TWELVE_HOUR: 12,
         }[resolution]
-        render.DetailedForecastRenderer().render(
-            console, geocoded_location, forecast, resolution_hours
+        console.print(
+            render.DetailedForecastRenderer().render(
+                geocoded_location, forecast, resolution_hours
+            )
         )
 
     if export_svg:
